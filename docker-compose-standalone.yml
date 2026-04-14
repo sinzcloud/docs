@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  emqx:
+    image: emqx/emqx:5.5.0
+    container_name: iot-emqx
+    restart: always
+    ports:
+      - "1883:1883"     # MQTT TCP
+      - "18083:18083"   # EMQX Dashboard
+    environment:
+      - EMQX_NODE_NAME=emqx@127.0.0.1
+      - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=emqx@127.0.0.1
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+    volumes:
+      - ./emqx/data:/opt/emqx/data
+      - ./emqx/log:/opt/emqx/log
+    networks:
+      - iot-net
+
+  mysql:
+    image: mysql:8.0
+    container_name: iot-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=iot
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - iot-net
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: iot-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - iot-net
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: iot-influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
+      - DOCKER_INFLUXDB_INIT_ORG=iot
+      - DOCKER_INFLUXDB_INIT_BUCKET=telemetry
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token
+    networks:
+      - iot-net
+
+networks:
+  iot-net:
+    name: iot-net

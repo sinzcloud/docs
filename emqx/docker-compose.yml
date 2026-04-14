@@ -1,0 +1,103 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.25
+    container_name: emqx-nginx
+    restart: always
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - emqx-net
+    depends_on:
+      - emqx1
+      - emqx2
+      - emqx3
+
+  emqx1:
+    image: emqx/emqx:5.5.0
+    container_name: emqx1
+    hostname: emqx1.cluster.local
+    restart: always
+    environment:
+      - EMQX_NODE_NAME=emqx@emqx1.cluster.local
+      - EMQX_NODE__COOKIE=emqx_prod_cookie
+      - EMQX_NODE__NAME_DOMAIN=cluster.local
+
+      - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=[emqx@emqx1.cluster.local,emqx@emqx2.cluster.local,emqx@emqx3.cluster.local]
+
+      - EMQX_NODE__DIST_LISTEN_MIN=5369
+      - EMQX_NODE__DIST_LISTEN_MAX=5369
+
+      - EMQX_LISTENERS__TCP__DEFAULT__BIND=0.0.0.0:1883
+      - EMQX_DASHBOARD__LISTENERS__HTTP__BIND=0.0.0.0:18083
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+
+    volumes:
+      - ./emqx1/data:/opt/emqx/data
+      - ./emqx1/log:/opt/emqx/log
+    networks:
+      - emqx-net
+
+  emqx2:
+    image: emqx/emqx:5.5.0
+    container_name: emqx2
+    hostname: emqx2.cluster.local
+    restart: always
+    environment:
+      - EMQX_NODE_NAME=emqx@emqx2.cluster.local
+      - EMQX_NODE__COOKIE=emqx_prod_cookie
+      - EMQX_NODE__NAME_DOMAIN=cluster.local
+
+      - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=[emqx@emqx1.cluster.local,emqx@emqx2.cluster.local,emqx@emqx3.cluster.local]
+
+      - EMQX_NODE__DIST_LISTEN_MIN=5369
+      - EMQX_NODE__DIST_LISTEN_MAX=5369
+
+      - EMQX_LISTENERS__TCP__DEFAULT__BIND=0.0.0.0:1883
+      - EMQX_DASHBOARD__LISTENERS__HTTP__BIND=0.0.0.0:18083
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+
+    volumes:
+      - ./emqx2/data:/opt/emqx/data
+      - ./emqx2/log:/opt/emqx/log
+    networks:
+      - emqx-net
+
+  emqx3:
+    image: emqx/emqx:5.5.0
+    container_name: emqx3
+    hostname: emqx3.cluster.local
+    restart: always
+    environment:
+      - EMQX_NODE_NAME=emqx@emqx3.cluster.local
+      - EMQX_NODE__COOKIE=emqx_prod_cookie
+      - EMQX_NODE__NAME_DOMAIN=cluster.local
+
+      - EMQX_CLUSTER__DISCOVERY_STRATEGY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=[emqx@emqx1.cluster.local,emqx@emqx2.cluster.local,emqx@emqx3.cluster.local]
+
+      - EMQX_NODE__DIST_LISTEN_MIN=5369
+      - EMQX_NODE__DIST_LISTEN_MAX=5369
+
+      - EMQX_LISTENERS__TCP__DEFAULT__BIND=0.0.0.0:1883
+      - EMQX_DASHBOARD__LISTENERS__HTTP__BIND=0.0.0.0:18083
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+
+    volumes:
+      - ./emqx3/data:/opt/emqx/data
+      - ./emqx3/log:/opt/emqx/log
+    networks:
+      - emqx-net
+
+networks:
+  emqx-net:
+    driver: bridge

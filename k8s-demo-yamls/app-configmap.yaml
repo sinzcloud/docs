@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iot-app-config
+  namespace: demo
+data:
+  application.yml: |
+    server:
+      port: 8080
+
+    spring:
+      application:
+        name: iot-platform
+
+      datasource:
+        url: jdbc:mysql://mysql:3306/iot?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+        driver-class-name: com.mysql.cj.jdbc.Driver
+
+      data:
+        redis:
+          host: redis
+          port: 6379
+          password:
+
+      influx:
+        url: http://influxdb:8086
+        token: demo-token-123456
+        org: demo-org
+        bucket: demo-bucket
+
+    mybatis-plus:
+      mapper-locations: classpath*:/mapper/**/*.xml
+      global-config:
+        db-config:
+          id-type: assign_id
+
+    mqtt:
+      client:
+        name: iot-platform-admin
+        ip: emqx
+        port: 1883
+        username: admin
+        password: public
+        client-id: iot-platform-gw-${random.uuid}
+
+    iot:
+      mqtt:
+        qos: 0
+        topic:
+          telemetry: iot/+/telemetry
+          event: iot/+/event
+          status: iot/+/status
+          cmdReply: iot/+/cmd_reply

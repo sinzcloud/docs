@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init
+  namespace: demo
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS `iot` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    USE `iot`;
+
+    DROP TABLE IF EXISTS `device`;
+    CREATE TABLE `device` (
+      `device_id` varchar(64) NOT NULL COMMENT '设备ID(唯一标识)',
+      `name` varchar(128) DEFAULT NULL COMMENT '设备名称',
+      `status` varchar(32) NOT NULL DEFAULT 'OFFLINE' COMMENT '状态(ONLINE/OFFLINE)',
+      `last_seen` datetime DEFAULT NULL COMMENT '最后在线时间',
+      `firmware_version` varchar(64) DEFAULT NULL COMMENT '固件版本',
+      `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+      PRIMARY KEY (`device_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备注册表';
+
+    DROP TABLE IF EXISTS `device_data`;
+    CREATE TABLE `device_data` (
+      `device_id` varchar(64) NOT NULL COMMENT '设备ID',
+      `temperature` decimal(10,2) DEFAULT NULL COMMENT '温度',
+      `humidity` decimal(10,2) DEFAULT NULL COMMENT '湿度',
+      `battery` int DEFAULT NULL COMMENT '电量百分比',
+      `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '数据更新时间',
+      PRIMARY KEY (`device_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备最新数据表';
+
+    DROP TABLE IF EXISTS `device_event`;
+    CREATE TABLE `device_event` (
+      `id` bigint NOT NULL AUTO_INCREMENT COMMENT '事件主键',
+      `device_id` varchar(64) NOT NULL COMMENT '设备ID',
+      `event_type` varchar(64) NOT NULL COMMENT '事件类型',
+      `payload` json DEFAULT NULL COMMENT '事件内容(JSON)',
+      `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      PRIMARY KEY (`id`),
+      KEY `idx_device_id` (`device_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备事件日志表';
+
+    DROP TABLE IF EXISTS `cmd_log`;
+    CREATE TABLE `cmd_log` (
+      `cmd_id` varchar(64) NOT NULL COMMENT '命令ID',
+      `device_id` varchar(64) NOT NULL COMMENT '设备ID',
+      `cmd_type` varchar(64) NOT NULL COMMENT '命令类型',
+      `status` varchar(32) NOT NULL DEFAULT 'SENT' COMMENT '状态(SENT/SUCCESS/FAIL/TIMEOUT)',
+      `payload` json DEFAULT NULL COMMENT '下发内容',
+      `reply_payload` json DEFAULT NULL COMMENT '回执内容',
+      `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '下发时间',
+      `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+      PRIMARY KEY (`cmd_id`),
+      KEY `idx_device_id` (`device_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备命令下发日志表';
+
+    DROP TABLE IF EXISTS `alarm_record`;
+    CREATE TABLE `alarm_record` (
+      `id` bigint NOT NULL AUTO_INCREMENT COMMENT '告警主键',
+      `device_id` varchar(64) NOT NULL COMMENT '涉事设备ID',
+      `alarm_type` varchar(64) NOT NULL COMMENT '告警类型(温度跨界/低电量)',
+      `alarm_level` varchar(32) NOT NULL DEFAULT 'WARNING' COMMENT '级别(WARNING/CRITICAL)',
+      `alarm_value` varchar(128) DEFAULT NULL COMMENT '超限时的快照数值',
+      `status` varchar(32) NOT NULL DEFAULT 'UNHANDLED' COMMENT '处理状态',
+      `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发生时间',
+      PRIMARY KEY (`id`),
+      KEY `idx_device_id` (`device_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备风控告警表';
+
+    DROP TABLE IF EXISTS `sys_user`;
+    CREATE TABLE `sys_user` (
+      `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户主键',
+      `username` varchar(64) NOT NULL COMMENT '登录账号',
+      `password` varchar(128) NOT NULL COMMENT '密码(BCrypt加密)',
+      `role` varchar(32) NOT NULL DEFAULT 'ROLE_ADMIN' COMMENT '角色',
+      `status` varchar(16) NOT NULL DEFAULT 'ACTIVE' COMMENT '状态',
+      `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      PRIMARY KEY (`user_id`),
+      UNIQUE KEY `idx_sys_user_username` (`username`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统管理员表';
+
+    INSERT INTO `sys_user` (`username`, `password`)
+    VALUES ('admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2');
