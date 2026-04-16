@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  oap:
+    image: apache/skywalking-oap-server:9.6.0
+    container_name: skywalking-oap
+    restart: always
+    ports:
+      - "11800:11800"   # agent 上报端口
+      - "12800:12800"   # OAP REST API
+    environment:
+      SW_STORAGE: h2
+
+  ui:
+    image: apache/skywalking-ui:9.6.0
+    container_name: skywalking-ui
+    restart: always
+    depends_on:
+      - oap
+    ports:
+      - "8080:8080"
+    environment:
+      SW_OAP_ADDRESS: http://oap:12800
